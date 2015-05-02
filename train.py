@@ -10,11 +10,11 @@ import util
 import time
 import itertools
 
-BATCH_SIZE = 100
-NUM_HIDDEN_UNITS = 128
+BATCH_SIZE = 1000
+NUM_HIDDEN_UNITS = 96
 LEARNING_RATE = 0.01
 MOMENTUM = 0.9
-NUM_EPOCHS = 500
+NUM_EPOCHS = 5000000
 
 def load_data():
   fbank = util.read_fbank(sys.argv[1])
@@ -38,21 +38,28 @@ def build_model(input_dim, output_dim, batch_size=BATCH_SIZE, num_hidden_units=N
     num_units=num_hidden_units,
     nonlinearity=lasagne.nonlinearities.rectify
   )
-  l_hidden1_dropout = lasagne.layers.DropoutLayer(
-    l_hidden1,
-    p=0.5
-  )
   l_hidden2 = lasagne.layers.DenseLayer(
-    l_in,
+    l_hidden1,
     num_units=num_hidden_units,
     nonlinearity=lasagne.nonlinearities.rectify
   )
-  l_hidden2_dropout = lasagne.layers.DropoutLayer(
+  l_hidden3 = lasagne.layers.DenseLayer(
     l_hidden2,
-    p=0.5
+    num_units=num_hidden_units,
+    nonlinearity=lasagne.nonlinearities.rectify
+  )
+  l_hidden4 = lasagne.layers.DenseLayer(
+    l_hidden3,
+    num_units=num_hidden_units,
+    nonlinearity=lasagne.nonlinearities.rectify
+  )
+  l_hidden5 = lasagne.layers.DenseLayer(
+    l_hidden4,
+    num_units=num_hidden_units,
+    nonlinearity=lasagne.nonlinearities.rectify
   )
   l_out = lasagne.layers.DenseLayer(
-    l_hidden2_dropout,
+    l_hidden5,
     num_units=output_dim,
     nonlinearity=lasagne.nonlinearities.softmax
   )
@@ -74,13 +81,13 @@ def create_iter_functions(data, output_layer):
   accuracy = T.mean(T.eq(pred, y_batch), dtype=theano.config.floatX)
 
   all_params = lasagne.layers.get_all_params(output_layer)
-  updates = lasagne.updates.nesterov_momentum(loss_train, all_params, LEARNING_RATE,MOMENTUM)
+  updates = lasagne.updates.nesterov_momentum(loss_train, all_params, LEARNING_RATE, MOMENTUM)
 
   iter_train = theano.function(
     [batch_index], loss_train, updates=updates,
     givens={
       x_batch: data['X_train'][batch_slice],
-      y_batch: data["Y_train"][batch_slice]
+      y_batch: data['Y_train'][batch_slice]
     }
   )
 
@@ -88,7 +95,7 @@ def create_iter_functions(data, output_layer):
     [], [loss_eval, accuracy],
     givens={
       x_batch: data['X_train'],
-      y_batch: data["Y_train"]
+      y_batch: data['Y_train']
     }
   )
 
@@ -101,6 +108,7 @@ def main():
   print("Loading data...")
   data = load_data()
   print("Building model and compile theano...")
+  print(data['num_train'])
   output_layer = build_model(input_dim = data['input_dim'], output_dim = data['output_dim'])
   iter_funcs = create_iter_functions(data, output_layer)
   print("Training")
