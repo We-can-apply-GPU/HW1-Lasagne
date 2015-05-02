@@ -8,6 +8,7 @@ import theano.tensor as T
 import lasagne
 import util
 import time
+import itertools
 
 BATCH_SIZE = 100
 NUM_HIDDEN_UNITS = 128
@@ -18,20 +19,19 @@ NUM_EPOCHS = 500
 def load_data():
   fbank = util.read_fbank(sys.argv[1])
   label = util.read_label(sys.argv[1])
-  print(label)
   X_train = np.array([data[1:] for data in fbank]).astype(theano.config.floatX)
   Y_train = np.array([data[1] for data in label]).astype('int32')
   return dict(
     X_train = theano.shared(X_train),
     Y_train = theano.shared(Y_train),
-    num_examples_train = X_train.shape[0],
+    num_train = X_train.shape[0],
     input_dim = X_train.shape[1],
     output_dim = 48
   )
 
 def build_model(input_dim, output_dim, batch_size=BATCH_SIZE, num_hidden_units=NUM_HIDDEN_UNITS):
   l_in = lasagne.layers.InputLayer(
-    shape=(batch_size, input_dim)
+    shape=(None, input_dim)
   )
   l_hidden1 = lasagne.layers.DenseLayer(
     l_in,
@@ -58,18 +58,23 @@ def build_model(input_dim, output_dim, batch_size=BATCH_SIZE, num_hidden_units=N
   )
   return l_out
 
-def create_iter_functions(data, output_layer, batch_size=BATCH_SIZE, learning_rate=LEARNING_RATE, momentum=MOMENTUM):
-  print(learning_rate, momentum)
+def create_iter_functions(data, output_layer):
+
   batch_index = T.iscalar('batch_index')
   x_batch = T.matrix('x')
   y_batch = T.ivector('y')
 
-  batch_slice = slice(batch_index * batch_size, (batch_index+1) * batch_size)
+  batch_slice = slice(batch_index * BATCH_SIZE, (batch_index+1) * BATCH_SIZE)
   objective = lasagne.objectives.Objective(output_layer, loss_function=lasagne.objectives.categorical_crossentropy)
 
   loss_train = objective.get_loss(x_batch, target=y_batch)
+  loss_eval = objective.get_loss(x_batch, target=y_batch, deterministic=True)
+
+  pred = T.argmax(output_layer.get_output(x_batch, deterministic=True), axis=1)
+  accuracy = T.mean(T.eq(pred, y_batch), dtype=theano.config.floatX)
+
   all_params = lasagne.layers.get_all_params(output_layer)
-  updates = lasagne.updates.nesterov_momentum(loss_train, all_params, learning_rate, momentum)
+  updates = lasagne.updates.nesterov_momentum(loss_train, all_params, LEARNING_RATE,MOMENTUM)
 
   iter_train = theano.function(
     [batch_index], loss_train, updates=updates,
@@ -79,47 +84,45 @@ def create_iter_functions(data, output_layer, batch_size=BATCH_SIZE, learning_ra
     }
   )
 
-  return dict(
-    train=iter_train
+  iter_valid = theano.function(
+    [], [loss_eval, accuracy],
+    givens={
+      x_batch: data['X_train'],
+      y_batch: data["Y_train"]
+    }
   )
 
-def train(iter_funcs, dataset, batch_size=BATCH_SIZE):
-  num_batches_train = dataset['num_examples_train'] // batch_size
-  epoch = 1
-  while True:
-    batch_train_losses = []
-    for b in range(num_batches_train):
-      batch_train_loss = iter_funcs['train'](b)
-      batch_train_losses.append(batch_train_losses)
-    avg_train_loss = np.mean(batch_train_losses)
-    yield {
-      'number': epoch,
-      'train_loss': avg_train_loss
-    }
-    epoch += 1
+  return dict(
+    train=iter_train,
+    valid=iter_valid
+  )
 
-
-def main(num_epochs=NUM_EPOCHS):
+def main():
   print("Loading data...")
   data = load_data()
-  print(data)
   print("Building model and compile theano...")
   output_layer = build_model(input_dim = data['input_dim'], output_dim = data['output_dim'])
   iter_funcs = create_iter_functions(data, output_layer)
   print("Training")
   now = time.time()
-  #try:
-  for epoch in train(iter_funcs, data):
-    print("Epoch {} of {} took {:.3f}s".format(epoch['number'], num_epochs, time.time() - now))
-    now = time.time
-    print("  training loss:\t\t{:.6f}".format(epoch['train_loss']))
-    if epoch['number'] >= num_epochs:
-      break;
-  """
+  try:
+    for epoch in range(NUM_EPOCHS):
+      num_batches_train = data['num_train'] // BATCH_SIZE
+      batch_train_losses = []
+      for b in range(num_batches_train):
+        batch_train_loss = iter_funcs['train'](b)
+        batch_train_losses.append(batch_train_loss)
+      avg_train_loss = np.mean(batch_train_losses)
+      print("Epoch {} of {} took {:.3f}s".format(epoch+1, NUM_EPOCHS, time.time() - now))
+      print("  training loss:\t\t{:.6f}".format(avg_train_loss))
+      if epoch % 10 == 0:
+        valid_loss, valid_accuracy = iter_funcs['valid']()
+        print("  validation loss:\t\t{:.6f}".format(float(valid_loss)))
+        print("  validation accuracy:\t\t{:.2f} %".format(valid_accuracy * 100))
+      now = time.time()
+
   except KeyboardInterrupt:
     pass
-  """
-
 
 if __name__ == '__main__':
   main()
