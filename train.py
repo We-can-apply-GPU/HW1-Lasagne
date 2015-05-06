@@ -10,9 +10,9 @@ import util
 import time
 import itertools
 
-BATCH_SIZE = 1000
-NUM_HIDDEN_UNITS = 96
-LEARNING_RATE = 0.01
+BATCH_SIZE = 500
+NUM_HIDDEN_UNITS = 512
+LEARNING_RATE = 0.001
 MOMENTUM = 0.9
 NUM_EPOCHS = 5000000
 
@@ -31,35 +31,40 @@ def load_data():
 
 def build_model(input_dim, output_dim, batch_size=BATCH_SIZE, num_hidden_units=NUM_HIDDEN_UNITS):
   l_in = lasagne.layers.InputLayer(
-    shape=(None, input_dim)
+    shape=(BATCH_SIZE, input_dim)
   )
   l_hidden1 = lasagne.layers.DenseLayer(
     l_in,
     num_units=num_hidden_units,
     nonlinearity=lasagne.nonlinearities.rectify
   )
+  l_dp1 = lasagne.layers.DropoutLayer(l_hidden1, rescale=True, p=0.1)
   l_hidden2 = lasagne.layers.DenseLayer(
-    l_hidden1,
+    l_dp1,
     num_units=num_hidden_units,
     nonlinearity=lasagne.nonlinearities.rectify
   )
+  l_dp2 = lasagne.layers.DropoutLayer(l_hidden2, rescale=True, p=0.1)
   l_hidden3 = lasagne.layers.DenseLayer(
-    l_hidden2,
+    l_dp2,
     num_units=num_hidden_units,
     nonlinearity=lasagne.nonlinearities.rectify
   )
+  l_dp3 = lasagne.layers.DropoutLayer(l_hidden3, rescale=True, p=0.1)
   l_hidden4 = lasagne.layers.DenseLayer(
-    l_hidden3,
+    l_dp3,
     num_units=num_hidden_units,
     nonlinearity=lasagne.nonlinearities.rectify
   )
+  l_dp4 = lasagne.layers.DropoutLayer(l_hidden4, rescale=True, p=0.1)
   l_hidden5 = lasagne.layers.DenseLayer(
-    l_hidden4,
+    l_dp4,
     num_units=num_hidden_units,
     nonlinearity=lasagne.nonlinearities.rectify
   )
+  l_dp5 = lasagne.layers.DropoutLayer(l_hidden5, rescale=False, p=0.1)
   l_out = lasagne.layers.DenseLayer(
-    l_hidden5,
+    l_dp5,
     num_units=output_dim,
     nonlinearity=lasagne.nonlinearities.softmax
   )
@@ -92,10 +97,10 @@ def create_iter_functions(data, output_layer):
   )
 
   iter_valid = theano.function(
-    [], [loss_eval, accuracy],
+    [batch_index], [loss_eval, accuracy],
     givens={
-      x_batch: data['X_train'],
-      y_batch: data['Y_train']
+      x_batch: data['X_train'][batch_slice],
+      y_batch: data['Y_train'][batch_slice]
     }
   )
 
@@ -124,9 +129,19 @@ def main():
       print("Epoch {} of {} took {:.3f}s".format(epoch+1, NUM_EPOCHS, time.time() - now))
       print("  training loss:\t\t{:.6f}".format(avg_train_loss))
       if epoch % 10 == 0:
-        valid_loss, valid_accuracy = iter_funcs['valid']()
-        print("  validation loss:\t\t{:.6f}".format(float(valid_loss)))
-        print("  validation accuracy:\t\t{:.2f} %".format(valid_accuracy * 100))
+        batch_valid_accus = []
+        batch_valid_losses = []
+        for b in range(num_batches_train):
+          batch_valid_loss, batch_valid_accu = iter_funcs['valid'](b)
+          batch_valid_losses.append(batch_valid_loss)
+          batch_valid_accus.append(batch_valid_accu)
+        avg_valid_loss = np.mean(batch_valid_losses)
+        avg_valid_accu = np.mean(batch_valid_accus)
+        print("--validation loss:\t\t{:.2f}".format(avg_valid_loss))
+        print("--validation accuracy:\t\t{:.2f} %".format(avg_valid_accu * 100))
+        import pickle
+        fout = open("model/5d/{:.2f}".format(avg_valid_accu * 100), "w")
+        pickle.dump(lasagne.layers.get_all_param_values(output_layer), fout)
       now = time.time()
 
   except KeyboardInterrupt:
