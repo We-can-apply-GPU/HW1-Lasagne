@@ -6,7 +6,7 @@ import numpy as np
 import theano
 import theano.tensor as T
 import lasagne
-import util
+from userCode import util
 import time
 import itertools
 
@@ -29,6 +29,9 @@ def load_data():
     output_dim = 48
   )
 
+
+#Todo
+#->Add weight initialize,need readWeight
 def build_model(input_dim, output_dim, batch_size=BATCH_SIZE, num_hidden_units=NUM_HIDDEN_UNITS):
   l_in = lasagne.layers.InputLayer(
     shape=(BATCH_SIZE, input_dim)
@@ -36,30 +39,35 @@ def build_model(input_dim, output_dim, batch_size=BATCH_SIZE, num_hidden_units=N
   l_hidden1 = lasagne.layers.DenseLayer(
     l_in,
     num_units=num_hidden_units,
+    W=lasagne.init.Normal(0.01),
     nonlinearity=lasagne.nonlinearities.rectify
   )
   l_dp1 = lasagne.layers.DropoutLayer(l_hidden1, rescale=True, p=0.1)
   l_hidden2 = lasagne.layers.DenseLayer(
     l_dp1,
     num_units=num_hidden_units,
+    W=lasagne.init.Normal(0.01),
     nonlinearity=lasagne.nonlinearities.rectify
   )
   l_dp2 = lasagne.layers.DropoutLayer(l_hidden2, rescale=True, p=0.1)
   l_hidden3 = lasagne.layers.DenseLayer(
     l_dp2,
     num_units=num_hidden_units,
+    W=lasagne.init.Normal(0.01),
     nonlinearity=lasagne.nonlinearities.rectify
   )
   l_dp3 = lasagne.layers.DropoutLayer(l_hidden3, rescale=True, p=0.1)
   l_hidden4 = lasagne.layers.DenseLayer(
     l_dp3,
     num_units=num_hidden_units,
+    W=lasagne.init.Normal(0.01),
     nonlinearity=lasagne.nonlinearities.rectify
   )
   l_dp4 = lasagne.layers.DropoutLayer(l_hidden4, rescale=True, p=0.1)
   l_hidden5 = lasagne.layers.DenseLayer(
     l_dp4,
     num_units=num_hidden_units,
+    W=lasagne.init.Normal(0.01),
     nonlinearity=lasagne.nonlinearities.rectify
   )
   l_dp5 = lasagne.layers.DropoutLayer(l_hidden5, rescale=False, p=0.1)
