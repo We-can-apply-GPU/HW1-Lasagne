@@ -13,45 +13,45 @@ NUM_HIDDEN_UNITS = 512
 DATA = "train"
 
 def build_model(input_dim, output_dim, num_hidden_units=NUM_HIDDEN_UNITS):
-  l_in = lasagne.layers.InputLayer(
-    shape=(None, input_dim)
-  )
-  l_hidden1 = lasagne.layers.DenseLayer(
-    l_in,
-    num_units=num_hidden_units,
-    nonlinearity=lasagne.nonlinearities.rectify
-  )
-  l_dp1 = lasagne.layers.DropoutLayer(l_hidden1, rescale=True, p=0.1)
-  l_hidden2 = lasagne.layers.DenseLayer(
-    l_dp1,
-    num_units=num_hidden_units,
-    nonlinearity=lasagne.nonlinearities.rectify
-  )
-  l_dp2 = lasagne.layers.DropoutLayer(l_hidden2, rescale=True, p=0.1)
-  l_hidden3 = lasagne.layers.DenseLayer(
-    l_dp2,
-    num_units=num_hidden_units,
-    nonlinearity=lasagne.nonlinearities.rectify
-  )
-  l_dp3 = lasagne.layers.DropoutLayer(l_hidden3, rescale=True, p=0.1)
-  l_hidden4 = lasagne.layers.DenseLayer(
-    l_dp3,
-    num_units=num_hidden_units,
-    nonlinearity=lasagne.nonlinearities.rectify
-  )
-  l_dp4 = lasagne.layers.DropoutLayer(l_hidden4, rescale=True, p=0.1)
-  l_hidden5 = lasagne.layers.DenseLayer(
-    l_dp4,
-    num_units=num_hidden_units,
-    nonlinearity=lasagne.nonlinearities.rectify
-  )
-  l_dp5 = lasagne.layers.DropoutLayer(l_hidden5, rescale=True, p=0.1)
-  l_out = lasagne.layers.DenseLayer(
-    l_dp5,
-    num_units=output_dim,
-    nonlinearity=lasagne.nonlinearities.softmax
-  )
-  return l_out
+    l_in = lasagne.layers.InputLayer(
+        shape=(None, input_dim)
+    )
+    l_hidden1 = lasagne.layers.DenseLayer(
+        l_in,
+        num_units=num_hidden_units,
+        nonlinearity=lasagne.nonlinearities.rectify
+    )
+    l_dp1 = lasagne.layers.DropoutLayer(l_hidden1, rescale=True, p=0.1)
+    l_hidden2 = lasagne.layers.DenseLayer(
+        l_dp1,
+        num_units=num_hidden_units,
+        nonlinearity=lasagne.nonlinearities.rectify
+    )
+    l_dp2 = lasagne.layers.DropoutLayer(l_hidden2, rescale=True, p=0.1)
+    l_hidden3 = lasagne.layers.DenseLayer(
+        l_dp2,
+        num_units=num_hidden_units,
+        nonlinearity=lasagne.nonlinearities.rectify
+    )
+    l_dp3 = lasagne.layers.DropoutLayer(l_hidden3, rescale=True, p=0.1)
+    l_hidden4 = lasagne.layers.DenseLayer(
+        l_dp3,
+        num_units=num_hidden_units,
+        nonlinearity=lasagne.nonlinearities.rectify
+    )
+    l_dp4 = lasagne.layers.DropoutLayer(l_hidden4, rescale=True, p=0.1)
+    l_hidden5 = lasagne.layers.DenseLayer(
+        l_dp4,
+        num_units=num_hidden_units,
+        nonlinearity=lasagne.nonlinearities.rectify
+    )
+    l_dp5 = lasagne.layers.DropoutLayer(l_hidden5, rescale=True, p=0.1)
+    l_out = lasagne.layers.DenseLayer(
+        l_dp5,
+        num_units=output_dim,
+        nonlinearity=lasagne.nonlinearities.softmax
+    )
+    return l_out
 
 def printtrim(ans, fout):
     for start in range(len(ans)):
